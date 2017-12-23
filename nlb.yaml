@@ -34,5 +34,5 @@ Outputs:
         Value: !Ref LoadBalancer
 
     LoadBalancerDNSName:
-        Description: The DNS Name of the ALB
+        Description: The DNS Name of the NLB
         Value: !GetAtt LoadBalancer.DNSName
