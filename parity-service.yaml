@@ -1,0 +1,205 @@
+Description: >
+    This template deploys a Network Load Balancer that acts as a front-end to the Parity service.
+    It also deploys a long-running service that launches Parity nodes listening for JSON RPC requests.
+Parameters: 
+
+    EnvironmentName:
+        Description: An environment name that will be prefixed to resource names
+        Type: String
+
+    Bucket:
+        Description: The S3 bucket that contains the Parity blockchain data files
+        Type: String
+        Default: aws-lukey-ethereum
+
+    s3key:
+        Description: The prefix in the S3 bucket that contains the Parity blockchain data files
+        Type: String
+        Default: parity-docker
+        
+    DockerImage:
+        Description: The Docker image to pull from your container registry
+        Type: String
+        Default: "703274262351.dkr.ecr.us-east-1.amazonaws.com/parity:latest"
+
+    VPC:
+        Type: AWS::EC2::VPC::Id
+        Description: Choose which VPC the Network Load Balancer should be deployed to
+
+    Subnets:
+        Description: Choose which subnets the Network Load Balancer should be deployed to
+        Type: List<AWS::EC2::Subnet::Id>
+
+    Cluster:
+        Description: Please provide the ECS Cluster ID that this service should run on
+        Type: String
+
+    DesiredCount: 
+        Description: How many instances of this task should we run across our cluster?
+        Type: Number
+        Default: 32
+
+Resources:
+
+    Service: 
+        Type: AWS::ECS::Service
+        DependsOn: Listener
+        Properties: 
+            Cluster: !Ref Cluster
+            Role: !Ref ServiceRole
+            DesiredCount: !Ref DesiredCount
+            TaskDefinition: !Ref TaskDefinition
+            LoadBalancers: 
+                - ContainerName: "parity-service"
+                  ContainerPort: 8545
+                  TargetGroupArn: !Ref TargetGroup
+
+    TaskDefinition:
+        Type: AWS::ECS::TaskDefinition
+        Properties:
+            Family: parity-service
+            TaskRoleArn: !Ref TaskRole
+            NetworkMode: bridge
+            ContainerDefinitions:
+                - Name: parity-service
+                  Essential: true
+                  Image: !Ref DockerImage
+                  Command: 
+                    - "--tx-queue-mem-limit 0 --tx-queue-size 40000 --rpccorsdomain * --rpcaddr 0.0.0.0 --jsonrpc-hosts all --warp"
+                  Environment:
+                    - Name: "region"
+                      Value: !Ref AWS::Region
+                    - Name: "bucket"
+                      Value: !Ref Bucket
+                    - Name: "s3key"
+                      Value: !Ref s3key
+                  Cpu: 512
+                  MemoryReservation: 1024
+                  PortMappings:
+                    - ContainerPort: 8545
+                  LogConfiguration:
+                    LogDriver: awslogs
+                    Options:
+                        awslogs-group: !Ref AWS::StackName
+                        awslogs-region: !Ref AWS::Region
+
+    CloudWatchLogsGroup:
+        Type: AWS::Logs::LogGroup
+        Properties: 
+            LogGroupName: !Ref AWS::StackName
+            RetentionInDays: 365  
+
+    LoadBalancer:
+        Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+        Properties:
+            Name: !Ref EnvironmentName
+            Type: network
+            Scheme: internal
+            Subnets: !Ref Subnets
+            Tags: 
+                - Key: Name
+                  Value: !Ref EnvironmentName
+
+    TargetGroup:
+        Type: AWS::ElasticLoadBalancingV2::TargetGroup
+        DependsOn: LoadBalancer
+        Properties:
+            VpcId: !Ref VPC
+            Port: 8545
+            Protocol: TCP
+            #HealthCheckIntervalSeconds: 10
+            #HealthCheckProtocol: TCP
+            #HealthCheckTimeoutSeconds: 5
+            #HealthyThresholdCount: 2
+
+    Listener:
+        Type: AWS::ElasticLoadBalancingV2::Listener
+        DependsOn: LoadBalancer
+        Properties: 
+            DefaultActions:
+            - Type: forward
+              TargetGroupArn: !Ref TargetGroup
+            LoadBalancerArn: !Ref LoadBalancer
+            Port: 8545
+            Protocol: TCP
+
+    #ListenerRule:
+    #    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    #    Properties:
+    #        ListenerArn: !Ref Listener
+    #        Priority: 2
+    #        Conditions:
+    #            - Field: path-pattern
+    #              Values: 
+    #                - !Ref Path
+    #        Actions:
+    #            - TargetGroupArn: !Ref TargetGroup
+    #              Type: forward
+
+    # This IAM Role grants the task access to download the blockchain saved in S3
+    TaskRole:
+        Type: AWS::IAM::Role
+        Properties:
+            RoleName: !Sub ecs-task-${AWS::StackName}
+            Path: /
+            AssumeRolePolicyDocument: |
+                {
+                    "Statement": [{
+                        "Sid": "",
+                        "Effect": "Allow",
+                        "Principal": { "Service": [ "ecs-tasks.amazonaws.com" ]},
+                        "Action": "sts:AssumeRole"
+                    }]
+                }
+            Policies: 
+                - PolicyName: !Sub ecs-task-${AWS::StackName}
+                  PolicyDocument: 
+                    {
+                        "Version": "2012-10-17",
+                        "Statement": [{
+                                "Effect": "Allow",
+                                "Action": [
+                                    "s3:Get*",
+                                    "s3:List*"
+                                ],
+                                "Resource": "*"
+                        }]
+                    }
+
+    # This IAM Role grants the service access to register/unregister with the 
+    # Application Load Balancer (ALB). It is based on the default documented here:
+    # http://docs.aws.amazon.com/AmazonECS/latest/developerguide/service_IAM_role.html
+    ServiceRole: 
+        Type: AWS::IAM::Role
+        Properties: 
+            RoleName: !Sub ecs-service-${AWS::StackName}
+            Path: /
+            AssumeRolePolicyDocument: |
+                {
+                    "Statement": [{
+                        "Effect": "Allow",
+                        "Principal": { "Service": [ "ecs.amazonaws.com" ]},
+                        "Action": [ "sts:AssumeRole" ]
+                    }]
+                }
+            Policies: 
+                - PolicyName: !Sub ecs-service-${AWS::StackName}
+                  PolicyDocument: 
+                    {
+                        "Version": "2012-10-17",
+                        "Statement": [{
+                                "Effect": "Allow",
+                                "Action": [
+                                    "ec2:AuthorizeSecurityGroupIngress",
+                                    "ec2:Describe*",
+                                    "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
+                                    "elasticloadbalancing:Describe*",
+                                    "elasticloadbalancing:RegisterInstancesWithLoadBalancer",
+                                    "elasticloadbalancing:DeregisterTargets",
+                                    "elasticloadbalancing:DescribeTargetGroups",
+                                    "elasticloadbalancing:DescribeTargetHealth",
+                                    "elasticloadbalancing:RegisterTargets"
+                                ],
+                                "Resource": "*"
+                        }]
+                    }
