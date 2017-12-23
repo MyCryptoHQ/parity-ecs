@@ -1,0 +1,38 @@
+Description: >
+    This template deploys a Network Load Balancer that exposes our various ECS services.
+    We create them in a seperate nested template, so it can be referenced by all of the other nested templates.
+Parameters:
+
+    EnvironmentName:
+        Description: An environment name that will be prefixed to resource names
+        Type: String
+
+    VPC:
+        Type: AWS::EC2::VPC::Id
+        Description: Choose which VPC the Network Load Balancer should be deployed to
+
+    Subnets:
+        Description: Choose which subnets the Network Load Balancer should be deployed to
+        Type: List<AWS::EC2::Subnet::Id>
+
+Resources:
+
+    LoadBalancer:
+        Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+        Properties:
+            Name: !Ref EnvironmentName
+            Type: network
+            Subnets: !Ref Subnets
+            Tags: 
+                - Key: Name
+                  Value: !Ref EnvironmentName
+
+Outputs:
+
+    LoadBalancer:
+        Description: A reference to the Network Load Balancer
+        Value: !Ref LoadBalancer
+
+    LoadBalancerDNSName:
+        Description: The DNS Name of the ALB
+        Value: !GetAtt LoadBalancer.DNSName
