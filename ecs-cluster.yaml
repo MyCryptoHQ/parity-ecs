@@ -133,6 +133,7 @@ Resources:
                     
                     # copy existing files from mount point
                     service docker stop
+                    echo 'DOCKER_STORAGE_OPTIONS="--storage-driver overlay2"' > /etc/sysconfig/docker-storage
                     mkdir -p /tmp$mount_point
                     rsync -val $mount_point/ /tmp/$mount_point/
                     umount $mount_point

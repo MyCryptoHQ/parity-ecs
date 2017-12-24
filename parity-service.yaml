@@ -37,7 +37,7 @@ Parameters:
     DesiredCount: 
         Description: How many instances of this task should we run across our cluster?
         Type: Number
-        Default: 32
+        Default: 48
 
 Resources:
 
@@ -49,6 +49,7 @@ Resources:
             Role: !Ref ServiceRole
             DesiredCount: !Ref DesiredCount
             TaskDefinition: !Ref TaskDefinition
+            
             LoadBalancers: 
                 - ContainerName: "parity-service"
                   ContainerPort: 8545
@@ -73,7 +74,7 @@ Resources:
                       Value: !Ref Bucket
                     - Name: "s3key"
                       Value: !Ref s3key
-                  Cpu: 512
+                  Cpu: 384
                   MemoryReservation: 1024
                   PortMappings:
                     - ContainerPort: 8545
@@ -107,10 +108,6 @@ Resources:
             VpcId: !Ref VPC
             Port: 8545
             Protocol: TCP
-            #HealthCheckIntervalSeconds: 10
-            #HealthCheckProtocol: TCP
-            #HealthCheckTimeoutSeconds: 5
-            #HealthyThresholdCount: 2
 
     Listener:
         Type: AWS::ElasticLoadBalancingV2::Listener
@@ -122,19 +119,6 @@ Resources:
             LoadBalancerArn: !Ref LoadBalancer
             Port: 8545
             Protocol: TCP
-
-    #ListenerRule:
-    #    Type: AWS::ElasticLoadBalancingV2::ListenerRule
-    #    Properties:
-    #        ListenerArn: !Ref Listener
-    #        Priority: 2
-    #        Conditions:
-    #            - Field: path-pattern
-    #              Values: 
-    #                - !Ref Path
-    #        Actions:
-    #            - TargetGroupArn: !Ref TargetGroup
-    #              Type: forward
 
     # This IAM Role grants the task access to download the blockchain saved in S3
     TaskRole:
