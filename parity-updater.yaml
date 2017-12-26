@@ -1,0 +1,99 @@
+Description: >
+    This template creates a single task definition in ECS that will launch the Parity updater container.
+    The Parity updater container is designed to download the stored Ethereum blockchain from S3,
+    synchronize it to the latest block on the chain, then cleanly exit the Parity process
+    (after a 30 minute timer expires), and sync the delta blocks back up to the S3 saved copy.
+    It is designed to be scheduled to run on a periodic basis through a CloudWatch event.
+Parameters: 
+
+    EnvironmentName:
+        Description: An environment name that will be prefixed to resource names
+        Type: String
+
+    Bucket:
+        Description: The S3 bucket that contains the Parity blockchain data files
+        Type: String
+        Default: aws-lukey-ethereum
+
+    s3key:
+        Description: The prefix in the S3 bucket that contains the Parity blockchain data files
+        Type: String
+        Default: parity-docker
+        
+    DockerImage:
+        Description: The Docker image to pull from your container registry
+        Type: String
+        Default: "703274262351.dkr.ecr.us-east-1.amazonaws.com/parity-updater:latest"
+
+    Cluster:
+        Description: Please provide the ECS Cluster ID that this service should run on
+        Type: String
+
+Resources:
+
+    TaskDefinition:
+        Type: AWS::ECS::TaskDefinition
+        Properties:
+            Family: parity-updater
+            TaskRoleArn: !Ref TaskRole
+            NetworkMode: bridge
+            ContainerDefinitions:
+                - Name: parity-updater
+                  Essential: true
+                  Image: !Ref DockerImage
+                  Command: 
+                    - "--tx-queue-mem-limit 0 --tx-queue-size 40000 --rpccorsdomain * --rpcaddr 0.0.0.0 --jsonrpc-hosts all --warp"
+                  Environment:
+                    - Name: "region"
+                      Value: !Ref AWS::Region
+                    - Name: "bucket"
+                      Value: !Ref Bucket
+                    - Name: "s3key"
+                      Value: !Ref s3key
+                  Cpu: 512
+                  MemoryReservation: 512
+                  PortMappings:
+                    - ContainerPort: 8545
+                  LogConfiguration:
+                    LogDriver: awslogs
+                    Options:
+                        awslogs-group: !Ref AWS::StackName
+                        awslogs-region: !Ref AWS::Region
+
+    CloudWatchLogsGroup:
+        Type: AWS::Logs::LogGroup
+        Properties: 
+            LogGroupName: !Ref AWS::StackName
+            RetentionInDays: 365  
+
+    # This IAM Role grants the task access to update the blockchain saved in S3
+    TaskRole:
+        Type: AWS::IAM::Role
+        Properties:
+            RoleName: !Sub ecs-task-${AWS::StackName}
+            Path: /
+            AssumeRolePolicyDocument: |
+                {
+                    "Statement": [{
+                        "Sid": "",
+                        "Effect": "Allow",
+                        "Principal": { "Service": [ "ecs-tasks.amazonaws.com" ]},
+                        "Action": "sts:AssumeRole"
+                    }]
+                }
+            Policies: 
+                - PolicyName: !Sub ecs-task-${AWS::StackName}
+                  PolicyDocument: 
+                    {
+                        "Version": "2012-10-17",
+                        "Statement": [{
+                                "Effect": "Allow",
+                                "Action": [
+                                    "s3:Get*",
+                                    "s3:List*"
+                                    "s3:PutObject*"
+                                    "s3:DeleteObject*"
+                                ],
+                                "Resource": "*"
+                        }]
+                    }
