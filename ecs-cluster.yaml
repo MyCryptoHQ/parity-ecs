@@ -15,7 +15,7 @@ Parameters:
     ClusterSize:
         Description: How many ECS hosts do you want to initially deploy?
         Type: Number
-        Default: 4
+        Default: 6
 
     VPC:
         Description: Choose which VPC this ECS cluster should be deployed to
@@ -25,9 +25,10 @@ Parameters:
         Description: Choose which subnets this ECS cluster should be deployed to
         Type: List<AWS::EC2::Subnet::Id>
 
-    SecurityGroup:
-        Description: Select the Security Group to use for the ECS cluster hosts
-        Type: AWS::EC2::SecurityGroup::Id
+    CIDR:
+        Description: CIDR range that you will allow JSON RPC requests from (leave default if using default VPC)
+        Type: String
+        Default: "172.31.0.0/16"
         
     KeyPair:
         Description: Select the KeyPair that you would like to use for the ECS cluster hosts
@@ -119,7 +120,7 @@ Resources:
             ImageId:  !FindInMap [AWSRegionToAMI, !Ref "AWS::Region", AMI]
             InstanceType: !Ref InstanceType
             SecurityGroups: 
-                - !Ref SecurityGroup
+                - !Ref InstanceSecurityGroup
             IamInstanceProfile: !Ref ECSInstanceProfile
             KeyName: !Ref KeyPair
             UserData: 
@@ -247,6 +248,22 @@ Resources:
             Path: /
             Roles: 
                 - !Ref ECSRole
+
+    InstanceSecurityGroup:
+        Type: AWS::EC2::SecurityGroup
+        Properties:
+            GroupName: !Sub ${EnvironmentName}-SG
+            GroupDescription: Allow SSH and NLB dynamic ports to EC2 instance
+            VpcId: !Ref VPC
+            SecurityGroupIngress:
+              - IpProtocol: tcp
+                FromPort: 22
+                ToPort: 22
+                CidrIp: 0.0.0.0/0
+              - IpProtocol: tcp
+                FromPort: 32768
+                ToPort: 61000
+                CidrIp: !Ref CIDR
 
 Outputs:
 
