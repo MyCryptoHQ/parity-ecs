@@ -31,6 +31,23 @@ Parameters:
 
 Resources:
 
+    CWEventRule:
+        Type: AWS::Events::Rule
+        Properties: 
+            Description: CloudWatch Events Rule to launch the scheduled task definition
+            Name: !Sub event-rule-${AWS::StackName}
+            ScheduleExpression: "rate(1 hour)"
+            State: ENABLED
+            Targets:
+                - Arn: !Sub arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${Cluster}
+                  RoleArn: !GetAtt 
+                    - TaskRole
+                    - Arn
+                  Id: !Sub rule-target-${AWS::StackName}
+                  EcsParameters:
+                    TaskCount: 1
+                    TaskDefinitionArn: !Ref TaskDefinition
+
     TaskDefinition:
         Type: AWS::ECS::TaskDefinition
         Properties:
@@ -64,7 +81,36 @@ Resources:
         Type: AWS::Logs::LogGroup
         Properties: 
             LogGroupName: !Ref AWS::StackName
-            RetentionInDays: 365  
+            RetentionInDays: 365
+
+    # This IAM Role grants CloudWatch events the ability to run the task
+    EventRole:
+        Type: AWS::IAM::Role
+        Properties:
+            RoleName: !Sub run-task-${AWS::StackName}
+            Path: /
+            AssumeRolePolicyDocument: |
+                {
+                    "Statement": [{
+                        "Sid": "",
+                        "Effect": "Allow",
+                        "Principal": { "Service": [ "events.amazonaws.com" ]},
+                        "Action": "sts:AssumeRole"
+                    }]
+                }
+            Policies: 
+                - PolicyName: !Sub run-task-${AWS::StackName}
+                  PolicyDocument: 
+                    {
+                        "Version": "2012-10-17",
+                        "Statement": [{
+                                "Effect": "Allow",
+                                "Action": [
+                                    "ecs:RunTask"
+                                ],
+                                "Resource": "*"
+                        }]
+                    }
 
     # This IAM Role grants the task access to update the blockchain saved in S3
     TaskRole:
@@ -90,8 +136,8 @@ Resources:
                                 "Effect": "Allow",
                                 "Action": [
                                     "s3:Get*",
-                                    "s3:List*"
-                                    "s3:PutObject*"
+                                    "s3:List*",
+                                    "s3:PutObject*",
                                     "s3:DeleteObject*"
                                 ],
                                 "Resource": "*"
