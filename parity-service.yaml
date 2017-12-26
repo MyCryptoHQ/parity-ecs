@@ -88,7 +88,7 @@ Resources:
         Type: AWS::Logs::LogGroup
         Properties: 
             LogGroupName: !Ref AWS::StackName
-            RetentionInDays: 365  
+            RetentionInDays: 14
 
     LoadBalancer:
         Type: AWS::ElasticLoadBalancingV2::LoadBalancer
