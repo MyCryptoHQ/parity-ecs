@@ -41,7 +41,7 @@ Resources:
             Targets:
                 - Arn: !Sub arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${Cluster}
                   RoleArn: !GetAtt 
-                    - TaskRole
+                    - EventRole
                     - Arn
                   Id: !Sub rule-target-${AWS::StackName}
                   EcsParameters:
@@ -76,12 +76,13 @@ Resources:
                     Options:
                         awslogs-group: !Ref AWS::StackName
                         awslogs-region: !Ref AWS::Region
+                        awslogs-stream-prefix: !Ref EnvironmentName
 
     CloudWatchLogsGroup:
         Type: AWS::Logs::LogGroup
         Properties: 
             LogGroupName: !Ref AWS::StackName
-            RetentionInDays: 365
+            RetentionInDays: 14
 
     # This IAM Role grants CloudWatch events the ability to run the task
     EventRole:

@@ -83,6 +83,7 @@ Resources:
                     Options:
                         awslogs-group: !Ref AWS::StackName
                         awslogs-region: !Ref AWS::Region
+                        awslogs-stream-prefix: !Ref EnvironmentName
 
     CloudWatchLogsGroup:
         Type: AWS::Logs::LogGroup
