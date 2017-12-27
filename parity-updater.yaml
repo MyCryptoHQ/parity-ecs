@@ -4,6 +4,7 @@ Description: >
     synchronize it to the latest block on the chain, then cleanly exit the Parity process
     (after a 30 minute timer expires), and sync the delta blocks back up to the S3 saved copy.
     It is designed to be scheduled to run on a periodic basis through a CloudWatch event.
+    Created by Luke Youngblood, lukey@amazon.com
 Parameters: 
 
     EnvironmentName:

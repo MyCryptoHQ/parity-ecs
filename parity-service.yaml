@@ -1,6 +1,7 @@
 Description: >
     This template deploys a Network Load Balancer that acts as a front-end to the Parity service.
     It also deploys a long-running service that launches Parity nodes listening for JSON RPC requests.
+    Created by Luke Youngblood, lukey@amazon.com
 Parameters: 
 
     EnvironmentName:

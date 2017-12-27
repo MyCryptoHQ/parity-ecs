@@ -1,6 +1,7 @@
 Description: >
     This template deploys an ECS cluster to the provided VPC and subnets 
     using an Auto Scaling Group
+    Created by Luke Youngblood, lukey@amazon.com
 Parameters:
 
     EnvironmentName:
