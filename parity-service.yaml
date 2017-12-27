@@ -10,7 +10,7 @@ Parameters:
     Bucket:
         Description: The S3 bucket that contains the Parity blockchain data files
         Type: String
-        Default: aws-lukey-ethereum
+        Default: parity-files-snapshot
 
     s3key:
         Description: The prefix in the S3 bucket that contains the Parity blockchain data files
@@ -37,7 +37,7 @@ Parameters:
     DesiredCount: 
         Description: How many instances of this task should we run across our cluster?
         Type: Number
-        Default: 48
+        Default: 12
 
 Resources:
 

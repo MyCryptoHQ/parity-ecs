@@ -13,7 +13,7 @@ Parameters:
     Bucket:
         Description: The S3 bucket that contains the Parity blockchain data files
         Type: String
-        Default: aws-lukey-ethereum
+        Default: parity-files-snapshot
 
     s3key:
         Description: The prefix in the S3 bucket that contains the Parity blockchain data files

@@ -10,12 +10,12 @@ Parameters:
     InstanceType: 
         Description: Which instance type should we use to build the ECS cluster?
         Type: String
-        Default: i3.xlarge
+        Default: i3.large
 
     ClusterSize:
         Description: How many ECS hosts do you want to initially deploy?
         Type: Number
-        Default: 6
+        Default: 3
 
     VPC:
         Description: Choose which VPC this ECS cluster should be deployed to
