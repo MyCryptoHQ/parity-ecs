@@ -6,7 +6,7 @@
 Prior to installation, you should do the following things in your AWS account:
 1. Create a keypair and save the private key (PEM file) to your workstation so you can ssh to the instances in your ECS cluster.
 2. Create two repositories in ECR, or in the Docker registry of your choice.  The first is called parity, and the second one is called parity-updater.
-... Note the location of each of the repositories, which will be similar to this: *AWS_account_ID*.dkr.ecr.us-east-1.amazonaws.com/parity:latest
+  * Note the location of each of the repositories, which will be similar to this: *AWS_account_ID*.dkr.ecr.us-east-1.amazonaws.com/parity:latest
 3. Place a copy of your parity .local directory with a completely up to date blockchain in an S3 bucket by using the ```aws s3 sync``` command.
 
 ### Build Parity node Docker container
