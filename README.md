@@ -48,10 +48,10 @@ The following steps will allow you to launch the Parity service that will run in
 1. Open the CloudFormation console, and select Create stack.
 2. Browse to the file *parity-service.yaml* that is located in the root of the git repository.
 3. Select the right number of parity nodes you would like to run.  Current testing indicates the following ratios provide suitable performance:
-  * i3.large - 4 parity nodes per instance.
-  * i3.xlarge - 8 parity nodes per instance.
-  * i3.2xlarge - 16 parity nodes per instance.
-  * i3.4xlarge - 32 parity nodes per instance (and so on).
+  * i3.large - 2 parity nodes per instance.
+  * i3.xlarge - 4 parity nodes per instance.
+  * i3.2xlarge - 8 parity nodes per instance.
+  * i3.4xlarge - 16 parity nodes per instance (and so on).
 4. Modify the Docker registry location to point to the ECR registry you created earlier.
 5. Select the same subnets and VPC that you selected when launching the ECS cluster.
 6. Launch the CloudFormation stack.  You'll need to watch it closely as it deploys, and as soon as the parity ECS service is created, you'll need to manually modify that service to set the Health Check Grace Period to 1800 seconds.  This parameter isn't currently available in CloudFormation.  Without this parameter, ECS will terminate your parity tasks before the JSON RPC listener starts.
