@@ -37,7 +37,8 @@ Parameters:
 
 Mappings:
 
-    # These are the latest ECS optimized AMIs as of January 8th, 2017:
+    # These are the latest ECS optimized AMIs as of January 8th, 2018:
+
     #
     #   amzn-ami-2017.09.f-amazon-ecs-optimized
     #   ECS agent:    1.16.1
@@ -127,6 +128,11 @@ Resources:
             UserData: 
                 "Fn::Base64": !Sub |
                     #!/bin/bash
+
+                    cd /tmp
+                    yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
+                    yum update -y
+                    restart amazon-ssm-agent
                     
                     drives=`find /dev -regextype posix-egrep -regex '.*/(sd[b-z]|xvd[b-z]|nvme[0-9]n1)'`
                     ephemeral_count=`find /dev -regextype posix-egrep -regex '.*/(sd[b-z]|xvd[b-z]|nvme[0-9]n1)'|wc -l`
@@ -161,10 +167,16 @@ Resources:
                     service docker start
                     
                     # Make raid appear on reboot
-                    echo "/dev/md0 $mount_point ext3 noatime 0 0" | tee -a /etc/fstab
+                    echo "/dev/md0 $mount_point ext4 noatime 0 0" | tee -a /etc/fstab
                     yum install -y aws-cfn-bootstrap
                     /opt/aws/bin/cfn-init -v --region ${AWS::Region} --stack ${AWS::StackName} --resource ECSLaunchConfiguration
                     /opt/aws/bin/cfn-signal -e $? --region ${AWS::Region} --stack ${AWS::StackName} --resource ECSAutoScalingGroup
+
+                    # If there was a kernel update applied, reboot
+                    if [ `rpm -q kernel|wc -l` -gt 1 ]
+                    then
+                        reboot
+                    fi
         Metadata:
             AWS::CloudFormation::Init:
                 config:
@@ -214,8 +226,11 @@ Resources:
                     "Statement": [{
                         "Action": "sts:AssumeRole",
                         "Effect": "Allow",
-                        "Principal": { 
-                            "Service": "ec2.amazonaws.com" 
+                        "Principal": {
+                            "Service": [
+                                "ec2.amazonaws.com",
+                                "ssm.amazonaws.com"
+                            ]
                         }
                     }]
                 }
@@ -239,6 +254,86 @@ Resources:
                                 "ecr:BatchGetImage",
                                 "ecr:GetDownloadUrlForLayer",
                                 "ecr:GetAuthorizationToken"
+                            ],
+                            "Resource": "*"
+                        }]
+                    }
+                - PolicyName: ssm-agent
+                  PolicyDocument: |
+                    {
+                        "Statement": [{
+                            "Effect": "Allow",
+                            "Action": [
+                                "ssm:DescribeAssociation",
+                                "ssm:GetDeployablePatchSnapshotForInstance",
+                                "ssm:GetDocument",
+                                "ssm:GetManifest",
+                                "ssm:GetParameters",
+                                "ssm:ListAssociations",
+                                "ssm:ListInstanceAssociations",
+                                "ssm:PutInventory",
+                                "ssm:PutComplianceItems",
+                                "ssm:PutConfigurePackageResult",
+                                "ssm:UpdateAssociationStatus",
+                                "ssm:UpdateInstanceAssociationStatus",
+                                "ssm:UpdateInstanceInformation"
+                            ],
+                            "Resource": "*"
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "ec2messages:AcknowledgeMessage",
+                                "ec2messages:DeleteMessage",
+                                "ec2messages:FailMessage",
+                                "ec2messages:GetEndpoint",
+                                "ec2messages:GetMessages",
+                                "ec2messages:SendReply"
+                            ],
+                            "Resource": "*"
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "cloudwatch:PutMetricData"
+                            ],
+                            "Resource": "*"
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "ec2:DescribeInstanceStatus"
+                            ],
+                            "Resource": "*"
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "ds:CreateComputer",
+                                "ds:DescribeDirectories"
+                            ],
+                            "Resource": "*"
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "logs:CreateLogGroup",
+                                "logs:CreateLogStream",
+                                "logs:DescribeLogGroups",
+                                "logs:DescribeLogStreams",
+                                "logs:PutLogEvents"
+                            ],
+                            "Resource": "*"
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "s3:PutObject",
+                                "s3:GetObject",
+                                "s3:AbortMultipartUpload",
+                                "s3:ListMultipartUploadParts",
+                                "s3:ListBucket",
+                                "s3:ListBucketMultipartUploads"
                             ],
                             "Resource": "*"
                         }]
