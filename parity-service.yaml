@@ -67,7 +67,7 @@ Resources:
                   Essential: true
                   Image: !Ref DockerImage
                   Command: 
-                    - "--tx-queue-mem-limit 0 --tx-queue-size 40000 --rpccorsdomain * --rpcaddr 0.0.0.0 --jsonrpc-hosts all --warp"
+                    - "--cache-size 2048 --tx-queue-mem-limit 0 --tx-queue-size 40000 --rpccorsdomain * --rpcaddr 0.0.0.0 --jsonrpc-hosts all --warp"
                   Environment:
                     - Name: "region"
                       Value: !Ref AWS::Region
@@ -75,8 +75,8 @@ Resources:
                       Value: !Ref Bucket
                     - Name: "s3key"
                       Value: !Ref s3key
-                  Cpu: 256
-                  MemoryReservation: 512
+                  Cpu: 512
+                  MemoryReservation: 2304
                   PortMappings:
                     - ContainerPort: 8545
                   LogConfiguration:
