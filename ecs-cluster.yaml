@@ -13,6 +13,11 @@ Parameters:
         Type: String
         Default: i3.large
 
+    SpotPrice:
+        Description: What is the maximum spot price we should pay per instance?  Set this to the on-demand price normally.
+        Type: Number
+        Default: 0.156
+
     ClusterSize:
         Description: How many ECS hosts do you want to initially deploy?
         Type: Number
@@ -121,6 +126,7 @@ Resources:
         Properties:
             ImageId:  !FindInMap [AWSRegionToAMI, !Ref "AWS::Region", AMI]
             InstanceType: !Ref InstanceType
+            SpotPrice: !Ref SpotPrice
             SecurityGroups: 
                 - !Ref InstanceSecurityGroup
             IamInstanceProfile: !Ref ECSInstanceProfile
