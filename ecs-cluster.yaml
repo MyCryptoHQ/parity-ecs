@@ -38,6 +38,7 @@ Parameters:
 Mappings:
 
     # These are the latest ECS optimized AMIs as of January 8th, 2018:
+
     #
     #   amzn-ami-2017.09.f-amazon-ecs-optimized
     #   ECS agent:    1.16.1
