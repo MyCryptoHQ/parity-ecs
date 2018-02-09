@@ -38,7 +38,7 @@ Parameters:
     DesiredCount: 
         Description: How many instances of this task should we run across our cluster?
         Type: Number
-        Default: 12
+        Default: 6
 
 Resources:
 
@@ -49,6 +49,10 @@ Resources:
             Cluster: !Ref Cluster
             Role: !Ref ServiceRole
             DesiredCount: !Ref DesiredCount
+            HealthCheckGracePeriodSeconds: 1800
+            DeploymentConfiguration:
+                MaximumPercent: 133
+                MinimumHealthyPercent: 66
             TaskDefinition: !Ref TaskDefinition
             
             LoadBalancers: 
@@ -67,7 +71,7 @@ Resources:
                   Essential: true
                   Image: !Ref DockerImage
                   Command: 
-                    - "--cache-size 2048 --tx-queue-mem-limit 0 --tx-queue-size 40000 --rpccorsdomain * --rpcaddr 0.0.0.0 --jsonrpc-hosts all --warp"
+                    - "--cache-size 2048 --tx-queue-mem-limit 0 --tx-queue-size 40000 --rpccorsdomain * --rpcaddr 0.0.0.0 --jsonrpc-hosts all --no-download --auto-update none --pruning fast --db-compaction ssd"
                   Environment:
                     - Name: "region"
                       Value: !Ref AWS::Region
@@ -75,7 +79,7 @@ Resources:
                       Value: !Ref Bucket
                     - Name: "s3key"
                       Value: !Ref s3key
-                  Cpu: 512
+                  Cpu: 256
                   MemoryReservation: 2304
                   PortMappings:
                     - ContainerPort: 8545
