@@ -120,8 +120,7 @@ Resources:
                 Timeout: PT15M
         UpdatePolicy:
             AutoScalingRollingUpdate:
-                MinInstancesInService: 1
-                MaxBatchSize: 1
+                MinSuccessfulInstancesPercent: 66
                 PauseTime: PT15M
                 SuspendProcesses:
                   - HealthCheck
@@ -195,7 +194,7 @@ Resources:
 
                     # Make sure Linux traffic control commands will also be set in case of a reboot
                     echo "tc qdisc add dev eth0 root handle 1:0 htb default 1" >> /etc/rc.local
-                    echo "tc class add dev eth0 parent 1:0 classid 1:10 htb rate ${Bandwidth}kbit ceil {BandwidthCeiling}kbit prio 0" >> /etc/rc.local
+                    echo "tc class add dev eth0 parent 1:0 classid 1:10 htb rate ${Bandwidth}kbit ceil ${BandwidthCeiling}kbit prio 0" >> /etc/rc.local
                     echo "tc filter add dev eth0 protocol ip parent 1:0 prio 1 u32 match ip dport 30303 0xffff flowid 1:10" >> /etc/rc.local
 
                     # If there was a kernel update applied, reboot
