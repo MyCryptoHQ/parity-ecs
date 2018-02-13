@@ -40,6 +40,16 @@ Parameters:
         Description: Select the KeyPair that you would like to use for the ECS cluster hosts
         Type: AWS::EC2::KeyPair::KeyName
 
+    Bandwidth:
+        Description: How much bandwidth, in kb/sec., should be allocated to Parity peers (upload) per EC2 instance
+        Type: Number
+        Default: 1024
+
+    BandwidthCeiling:
+        Description: How much bandwidth, in kb/sec., should be allocated to Parity peers as a ceiling (max. upload)
+        Type: Number
+        Default: 2048
+
 Mappings:
 
     # These are the latest ECS optimized AMIs as of January 8th, 2018:
@@ -56,35 +66,35 @@ Mappings:
 
     AWSRegionToAMI:
         us-east-2:
-            AMI: ami-13af8476
+            AMI: ami-67ab9e02
         us-east-1:
-            AMI: ami-ba722dc0
+            AMI: ami-5e414e24
         us-west-2:
-            AMI: ami-c9c87cb1
+            AMI: ami-10ed6968
         us-west-1:
-            AMI: ami-9df0f0fd
+            AMI: ami-00898660
         eu-west-3:
-            AMI: ami-5e02b523
+            AMI: ami-6fa21412
         eu-west-2:
-            AMI: ami-4d809829
+            AMI: ami-42a64325
         eu-west-1:
-            AMI: ami-acb020d5
+            AMI: ami-880d64f1
         eu-central-1:
-            AMI: ami-eacf5d85
+            AMI: ami-63cbae0c
         ap-northeast-2:
-            AMI: ami-59b71737
+            AMI: ami-0acc6e64
         ap-northeast-1:
-            AMI: ami-72f36a14
+            AMI: ami-e3166185
         ap-southeast-2:
-            AMI: ami-7aa15c18
+            AMI: ami-36867d54
         ap-southeast-1:
-            AMI: ami-e782f29b
+            AMI: ami-66c98f1a
         ca-central-1:
-            AMI: ami-9afc79fe
+            AMI: ami-4b9c182f
         ap-south-1:
-            AMI: ami-f4db8f9b
+            AMI: ami-ca8ad9a5
         sa-east-1:
-            AMI: ami-49256725
+            AMI: ami-69f7b805
 
 Resources:
 
@@ -177,6 +187,16 @@ Resources:
                     yum install -y aws-cfn-bootstrap
                     /opt/aws/bin/cfn-init -v --region ${AWS::Region} --stack ${AWS::StackName} --resource ECSLaunchConfiguration
                     /opt/aws/bin/cfn-signal -e $? --region ${AWS::Region} --stack ${AWS::StackName} --resource ECSAutoScalingGroup
+
+                    # Set Linux traffic control to limit outbound bandwidth usage of Parity
+                    tc qdisc add dev eth0 root handle 1:0 htb default 1
+                    tc class add dev eth0 parent 1:0 classid 1:10 htb rate ${Bandwidth}kbit ceil {BandwidthCeiling}kbit prio 0
+                    tc filter add dev eth0 protocol ip parent 1:0 prio 1 u32 match ip dport 30303 0xffff flowid 1:10
+
+                    # Make sure Linux traffic control commands will also be set in case of a reboot
+                    echo "tc qdisc add dev eth0 root handle 1:0 htb default 1" >> /etc/rc.local
+                    echo "tc class add dev eth0 parent 1:0 classid 1:10 htb rate ${Bandwidth}kbit ceil {BandwidthCeiling}kbit prio 0" >> /etc/rc.local
+                    echo "tc filter add dev eth0 protocol ip parent 1:0 prio 1 u32 match ip dport 30303 0xffff flowid 1:10" >> /etc/rc.local
 
                     # If there was a kernel update applied, reboot
                     if [ `rpm -q kernel|wc -l` -gt 1 ]
