@@ -1,0 +1,308 @@
+Description: >
+    This template deploys an API Gateway that connects directly to the Parity service,
+    using VPC Link to proxy the requests directly to the NLB.  Security is provided by
+    validating the request body against a JSON schema, which only allows approved
+    JSON RPC methods to be included in the request body.
+    Created by Luke Youngblood, luke.youngblood@gmail.com
+
+Parameters:
+
+    EnvironmentName:
+        Description: An environment name that will be prefixed to resource names
+        Type: String
+
+    NLBURL:
+        Description: The URL of the Network Load Balancer's JSON RPC listener
+        Type: String
+        Default: "http://parity-service-dd9a57463e1e8d20.elb.us-west-2.amazonaws.com:8545"
+
+    APIname:
+        Description: The name of the API Gateway
+        Type: String
+
+    VPCLink:
+        Description: The ID of the VPC Link
+        Type: String
+        Default: "9p92ur"
+
+    APIHostname:
+        Description: The hostname of the API in case you are using a custom domain
+        Type: String
+        Default: "api.dev.blockscale.net"
+
+    ResourcePathPart:
+        Description: "The path part for the API stage (example: dev)"
+        Type: String
+        Default: "dev"
+
+Resources:
+
+    RestApi:
+        Type: AWS::ApiGateway::RestApi
+        Properties:
+            Name: !Ref APIname
+            Body:
+                swagger: "2.0"
+                info:
+                  version: "2018-02-17T15:42:50Z"
+                  title: "Blockscale Dev API"
+                host: !Ref APIHostname
+                basePath: "/dev"
+                schemes:
+                - "https"
+                paths:
+                  /parity:
+                    post:
+                      consumes:
+                      - "application/json"
+                      produces:
+                      - "application/json"
+                      parameters:
+                      - in: "body"
+                        name: "EthJSONRPC"
+                        required: true
+                        schema:
+                          $ref: "#/definitions/EthJSONRPC"
+                      responses:
+                        200:
+                          description: "200 response"
+                          schema:
+                            $ref: "#/definitions/Empty"
+                      x-amazon-apigateway-request-validator: "Validate body"
+                      x-amazon-apigateway-integration:
+                        responses:
+                          default:
+                            statusCode: "200"
+                        uri: !Ref NLBURL
+                        passthroughBehavior: "when_no_match"
+                        connectionType: "VPC_LINK"
+                        connectionId: !Ref VPCLink
+                        httpMethod: "POST"
+                        type: "http_proxy"
+                    options:
+                      consumes:
+                      - "application/json"
+                      produces:
+                      - "application/json"
+                      responses:
+                        200:
+                          description: "200 response"
+                          schema:
+                            $ref: "#/definitions/Empty"
+                          headers:
+                            Access-Control-Allow-Origin:
+                              type: "string"
+                            Access-Control-Allow-Methods:
+                              type: "string"
+                            Access-Control-Allow-Headers:
+                              type: "string"
+                      x-amazon-apigateway-integration:
+                        responses:
+                          default:
+                            statusCode: "200"
+                            responseParameters:
+                              method.response.header.Access-Control-Allow-Methods: "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'"
+                              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
+                              method.response.header.Access-Control-Allow-Origin: "'*'"
+                        passthroughBehavior: "when_no_match"
+                        requestTemplates:
+                          application/json: "{\"statusCode\": 200}"
+                        type: "mock"
+                definitions:
+                  EthJSONRPC:
+                    title: "EthJSONRPC"
+                  Empty:
+                    type: "object"
+                    title: "Empty Schema"
+                x-amazon-apigateway-request-validators:
+                  Validate body:
+                    validateRequestParameters: false
+                    validateRequestBody: true
+
+    EthJSONRPCModel: 
+        Type: "AWS::ApiGateway::Model"
+        Properties: 
+            RestApiId: 
+              Ref: RestApi
+            ContentType: "application/json"
+            Description: "Schema for EthJSONRPC"
+            Name: EthJSONRPC
+            Schema: 
+                "$schema": "http://json-schema.org/draft-04/schema#"
+                title: EthJSONRPC
+                anyOf:
+                - type: object
+                  properties:
+                    method:
+                      type: string
+                      enum:
+                      - rpc_modules
+                      - web3_clientVersion
+                      - web3_sha3
+                      - net_version
+                      - net_peerCount
+                      - net_listening
+                      - eth_protocolVersion
+                      - eth_syncing
+                      - eth_gasPrice
+                      - eth_blockNumber
+                      - eth_getBalance
+                      - eth_getStorageAt
+                      - eth_getTransactionCount
+                      - eth_getBlockTransactionCountByHash
+                      - eth_getBlockTransactionCountByNumber
+                      - eth_getUncleCountByBlockHash
+                      - eth_getUncleCountByBlockNumber
+                      - eth_getCode
+                      - eth_sendRawTransaction
+                      - eth_call
+                      - eth_estimateGas
+                      - eth_getBlockByHash
+                      - eth_getBlockByNumber
+                      - eth_getTransactionByHash
+                      - eth_getTransactionByBlockHashAndIndex
+                      - eth_getTransactionByBlockNumberAndIndex
+                      - eth_getTransactionReceipt
+                      - eth_getUncleByBlockHashAndIndex
+                      - eth_getUncleByBlockNumberAndIndex
+                      - eth_getCompilers
+                      - eth_compileSolidity
+                      - eth_newFilter
+                      - eth_newBlockFilter
+                      - eth_newPendingTransactionFilter
+                      - eth_uninstallFilter
+                      - eth_getFilterChanges
+                      - eth_getFilterLogs
+                      - eth_getLogs
+                      - trace_call
+                      - trace_rawTransaction
+                      - trace_replayTransaction
+                      - trace_filter
+                      - trace_get
+                      - trace_transaction
+                      - trace_block
+                - type: array
+                  items:
+                    properties:
+                      method:
+                        type: string
+                        enum:
+                        - rpc_modules
+                        - web3_clientVersion
+                        - web3_sha3
+                        - net_version
+                        - net_peerCount
+                        - net_listening
+                        - eth_protocolVersion
+                        - eth_syncing
+                        - eth_gasPrice
+                        - eth_blockNumber
+                        - eth_getBalance
+                        - eth_getStorageAt
+                        - eth_getTransactionCount
+                        - eth_getBlockTransactionCountByHash
+                        - eth_getBlockTransactionCountByNumber
+                        - eth_getUncleCountByBlockHash
+                        - eth_getUncleCountByBlockNumber
+                        - eth_getCode
+                        - eth_sendRawTransaction
+                        - eth_call
+                        - eth_estimateGas
+                        - eth_getBlockByHash
+                        - eth_getBlockByNumber
+                        - eth_getTransactionByHash
+                        - eth_getTransactionByBlockHashAndIndex
+                        - eth_getTransactionByBlockNumberAndIndex
+                        - eth_getTransactionReceipt
+                        - eth_getUncleByBlockHashAndIndex
+                        - eth_getUncleByBlockNumberAndIndex
+                        - eth_getCompilers
+                        - eth_compileSolidity
+                        - eth_newFilter
+                        - eth_newBlockFilter
+                        - eth_newPendingTransactionFilter
+                        - eth_uninstallFilter
+                        - eth_getFilterChanges
+                        - eth_getFilterLogs
+                        - eth_getLogs
+                        - trace_call
+                        - trace_rawTransaction
+                        - trace_replayTransaction
+                        - trace_filter
+                        - trace_get
+                        - trace_transaction
+                        - trace_block
+
+    APIGWStage:
+        Type: AWS::ApiGateway::Stage
+        Properties:
+            DeploymentId: String
+            RestApiId: !Ref ApiDeployment
+            StageName: !Ref ResourcePathPart
+
+    APIGWDeployment:
+        Type: AWS::ApiGateway::Deployment
+        DependsOn: EthRequest
+        Properties:
+            RestApiId: !Ref ApiDeployment
+            StageName: "DummyStage"
+
+    ApiResource:
+        Type: AWS::ApiGateway::Resource
+        Properties:
+            RestApiId: !Ref ApiDeployment
+            ParentId: Fn::GetAtt: [ "ApiDeployment", "RootResourceId" ]
+            PathPart: !Ref ResourcePathPart
+
+    APIGWRole:
+        Type: AWS::IAM::Role
+        Properties: 
+            Path: /
+            RoleName: !Sub ${EnvironmentName}-APIGWRole-${AWS::Region}
+            AssumeRolePolicyDocument: |
+                {
+                    "Statement": [{
+                        "Action": "sts:AssumeRole",
+                        "Effect": "Allow",
+                        "Principal": {
+                            "Service": [
+                                "apigateway.amazonaws.com"
+                            ]
+                        }
+                    }]
+                }
+            Policies: 
+                - PolicyName: ecs-service
+                  PolicyDocument: |
+                    {
+                        "Statement": [{
+                            "Effect": "Allow",
+                            "Action": [
+                                "ecs:CreateCluster",
+                                "ecs:DeregisterContainerInstance",
+                                "ecs:DiscoverPollEndpoint",
+                                "ecs:Poll",
+                                "ecs:RegisterContainerInstance",
+                                "ecs:StartTelemetrySession",
+                                "ecs:Submit*",
+                                "logs:CreateLogStream",
+                                "logs:PutLogEvents",
+                                "ecr:BatchCheckLayerAvailability",
+                                "ecr:BatchGetImage",
+                                "ecr:GetDownloadUrlForLayer",
+                                "ecr:GetAuthorizationToken"
+                            ],
+                            "Resource": "*"
+                        }]
+                    }
+
+    APIGWAccount:
+        Type: "AWS::ApiGateway::Account"
+        Properties: 
+            CloudWatchRoleArn: !Ref APIGWRole
+
+Outputs:
+
+    RestApiId:
+        Description: A reference to the REST API Created
+        Value: !Ref RestApi
