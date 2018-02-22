@@ -43,26 +43,26 @@ Parameters:
     Bandwidth:
         Description: How much bandwidth, in kb/sec., should be allocated to Parity peers (upload) per EC2 instance
         Type: Number
-        Default: 1024
+        Default: 2048
 
     BandwidthCeiling:
         Description: How much bandwidth, in kb/sec., should be allocated to Parity peers as a ceiling (max. upload)
         Type: Number
-        Default: 2048
+        Default: 4096
 
 Mappings:
 
-    # These are the latest ECS optimized AMIs as of January 8th, 2018:
+    # These are the latest ECS optimized AMIs as of February 22nd, 2018:
 
     #
-    #   amzn-ami-2017.09.f-amazon-ecs-optimized
-    #   ECS agent:    1.16.1
-    #   Docker:       17.06.2-ce
-    #   ecs-init:     1.16.1-1
+    #   amzn-ami-2017.09.h-amazon-ecs-optimized
+    #   ECS agent:    1.17.0
+    #   Docker:       17.09.1-ce
+    #   ecs-init:     1.17.0-2
     #
     # You can find the latest available on this page of our documentation:
     # http://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs-optimized_AMI.html
-    # (note the AMI identifier is region specific) 
+    # (note the AMI identifier is region specific)
 
     AWSRegionToAMI:
         us-east-2:
