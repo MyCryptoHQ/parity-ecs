@@ -47,7 +47,7 @@ Resources:
                   version: "2018-02-17T15:42:50Z"
                   title: "Blockscale Dev API"
                 host: !Ref APIHostname
-                basePath: "/dev"
+                basePath: !Ref ResourcePathPart
                 schemes:
                 - "https"
                 paths:
@@ -62,9 +62,9 @@ Resources:
                         name: "EthJSONRPC"
                         required: true
                         schema:
-                          $ref: "#/definitions/EthJSONRPC"
+                          $ref: "#/definitions/Empty"
                       responses:
-                        200:
+                        "200":
                           description: "200 response"
                           schema:
                             $ref: "#/definitions/Empty"
@@ -85,7 +85,7 @@ Resources:
                       produces:
                       - "application/json"
                       responses:
-                        200:
+                        "200":
                           description: "200 response"
                           schema:
                             $ref: "#/definitions/Empty"
@@ -109,8 +109,8 @@ Resources:
                           application/json: "{\"statusCode\": 200}"
                         type: "mock"
                 definitions:
-                  EthJSONRPC:
-                    title: "EthJSONRPC"
+#                  EthJSONRPC:
+#                    title: "EthJSONRPC"
                   Empty:
                     type: "object"
                     title: "Empty Schema"
@@ -122,8 +122,7 @@ Resources:
     EthJSONRPCModel: 
         Type: "AWS::ApiGateway::Model"
         Properties: 
-            RestApiId: 
-              Ref: RestApi
+            RestApiId: !Ref RestApi
             ContentType: "application/json"
             Description: "Schema for EthJSONRPC"
             Name: EthJSONRPC
@@ -233,26 +232,11 @@ Resources:
                         - trace_transaction
                         - trace_block
 
-    APIGWStage:
-        Type: AWS::ApiGateway::Stage
-        Properties:
-            DeploymentId: String
-            RestApiId: !Ref ApiDeployment
-            StageName: !Ref ResourcePathPart
-
     APIGWDeployment:
         Type: AWS::ApiGateway::Deployment
-        DependsOn: EthRequest
         Properties:
-            RestApiId: !Ref ApiDeployment
-            StageName: "DummyStage"
-
-    ApiResource:
-        Type: AWS::ApiGateway::Resource
-        Properties:
-            RestApiId: !Ref ApiDeployment
-            ParentId: Fn::GetAtt: [ "ApiDeployment", "RootResourceId" ]
-            PathPart: !Ref ResourcePathPart
+            RestApiId: !Ref RestApi
+            StageName: !Ref ResourcePathPart
 
     APIGWRole:
         Type: AWS::IAM::Role
@@ -278,19 +262,13 @@ Resources:
                         "Statement": [{
                             "Effect": "Allow",
                             "Action": [
-                                "ecs:CreateCluster",
-                                "ecs:DeregisterContainerInstance",
-                                "ecs:DiscoverPollEndpoint",
-                                "ecs:Poll",
-                                "ecs:RegisterContainerInstance",
-                                "ecs:StartTelemetrySession",
-                                "ecs:Submit*",
+                                "logs:CreateLogGroup",
                                 "logs:CreateLogStream",
+                                "logs:DescribeLogGroups",
+                                "logs:DescribeLogStreams",
                                 "logs:PutLogEvents",
-                                "ecr:BatchCheckLayerAvailability",
-                                "ecr:BatchGetImage",
-                                "ecr:GetDownloadUrlForLayer",
-                                "ecr:GetAuthorizationToken"
+                                "logs:GetLogEvents",
+                                "logs:FilterLogEvents"
                             ],
                             "Resource": "*"
                         }]
@@ -298,8 +276,12 @@ Resources:
 
     APIGWAccount:
         Type: "AWS::ApiGateway::Account"
+        DependsOn: APIGWRole
         Properties: 
-            CloudWatchRoleArn: !Ref APIGWRole
+            CloudWatchRoleArn:
+                Fn::GetAtt:
+                    - APIGWRole
+                    - Arn
 
 Outputs:
 
