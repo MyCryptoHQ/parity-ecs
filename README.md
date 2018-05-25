@@ -15,7 +15,7 @@ The following steps will allow you to build the Parity node docker container:
 2. Run the following commands to build and push the Docker container:
 ```
 aws ecr get-login --no-include-email --region us-east-1
-cd docker-parity/
+cd parity-docker/
 docker build -t parity .
 docker tag parity:latest <AWS_account_ID>.dkr.ecr.us-east-1.amazonaws.com/parity:latest
 docker push <AWS_account_ID>.dkr.ecr.us-east-1.amazonaws.com/parity:latest
@@ -24,7 +24,7 @@ docker push <AWS_account_ID>.dkr.ecr.us-east-1.amazonaws.com/parity:latest
 ### Build the Parity Updater Docker container
 The following steps will allow you to build the Parity updater docker container:
 ```
-cd ../docker-updater/
+cd ../updater-docker/
 docker build -t parity-updater .
 docker tag parity-updater:latest <AWS_account_ID>.dkr.ecr.us-east-1.amazonaws.com/parity-updater:latest
 docker push <AWS_account_ID>.dkr.ecr.us-east-1.amazonaws.com/parity-updater:latest
@@ -33,7 +33,7 @@ docker push <AWS_account_ID>.dkr.ecr.us-east-1.amazonaws.com/parity-updater:late
 ### Launch the ECS Cluster
 The following steps will allow you to launch the ECS cluster:
 1. Open the CloudFormation console, and select Create stack.
-2. Browse to the file *parity-ecs.yaml* that is located in the root of the git repository.
+2. Browse to the file *ecs-cluster.yaml* that is located in the root of the git repository.
 3. Select the right instance type (only the i3 family is currently supported).
 4. Select the amount of instances you would like to launch.
 5. Assign a unique name to the environment and stack.  I used "parity-ecs".
